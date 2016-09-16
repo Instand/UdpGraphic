@@ -53,6 +53,11 @@ struct BaseGUI::Data {
     uint port3;
 
     uint receivedDataCount = 6;
+    QString box1Name;
+    QString box2Name;
+    QString box3Name;
+    QString box4Name;
+    QString box5Name;
 
     //received data
     QVector<float> receivedData = QVector<float>(receivedDataCount);
@@ -119,6 +124,9 @@ BaseGUI::BaseGUI(QWidget *parent) :
     //log graphs control -> buttons names
     setupLogButtonList();
 
+    //update box names
+    getBoxNames();
+
     ui->painter->legend->setVisible(true);
 
     //connectings
@@ -136,6 +144,11 @@ BaseGUI::BaseGUI(QWidget *parent) :
     QObject::connect(ui->ySetButton, SIGNAL(clicked(bool)), SLOT(applyYRange()));
     QObject::connect(ui->clearGraphButton, SIGNAL(clicked(bool)), SLOT(cleanGraphs()));
     QObject::connect(ui->screenButton, SIGNAL(clicked(bool)), SLOT(takeScreenshot()));
+    QObject::connect(log->firstGraphBox, SIGNAL(stateChanged(int)), SLOT(setGraphsVisibility(int)));
+    QObject::connect(log->secondGraphBox, SIGNAL(stateChanged(int)), SLOT(setGraphsVisibility(int)));
+    QObject::connect(log->thirdGraphBox, SIGNAL(stateChanged(int)), SLOT(setGraphsVisibility(int)));
+    QObject::connect(log->fourthGraphBox, SIGNAL(stateChanged(int)), SLOT(setGraphsVisibility(int)));
+    QObject::connect(log->fifthGraphBox, SIGNAL(stateChanged(int)), SLOT(setGraphsVisibility(int)));
 }
 
 BaseGUI::~BaseGUI()
@@ -572,6 +585,7 @@ void BaseGUI::applyXRange()
     data->startX = ui->fromXEdit->text().toFloat();
     data->endX = ui->toXEdit->text().toFloat();
     ui->painter->xAxis->setRange(data->startX, data->endX);
+    ui->painter->replot();
 }
 
 void BaseGUI::applyYRange()
@@ -579,6 +593,7 @@ void BaseGUI::applyYRange()
     data->startY = ui->fromYEdit->text().toFloat();
     data->endY = ui->toYEdit->text().toFloat();
     ui->painter->yAxis->setRange(data->startY, data->endY);
+    ui->painter->replot();
 }
 
 void BaseGUI::cleanGraphs()
@@ -603,6 +618,32 @@ void BaseGUI::takeScreenshot()
     }
 
     ui->painter->saveBmp(QApplication::applicationDirPath() + "/screenshots/screenshot" + QString::number(number) + QString(".bmp"));
+}
+
+void BaseGUI::setGraphsVisibility(int state)
+{
+    QString name = QObject::sender()->objectName();
+    bool _state = static_cast<bool>(state);
+
+    if (name == data->box1Name)
+        ui->painter->graph(0)->setVisible(_state);
+    else if (name == data->box2Name)
+        ui->painter->graph(1)->setVisible(_state);
+    else if (name == data->box3Name)
+        ui->painter->graph(2)->setVisible(_state);
+    else if (name == data->box4Name)
+        ui->painter->graph(3)->setVisible(_state);
+    else if (name == data->box5Name)
+        ui->painter->graph(4)->setVisible(_state);
+}
+
+void BaseGUI::getBoxNames()
+{
+    data->box1Name = log->fifthGraphBox->objectName();
+    data->box2Name = log->secondGraphBox->objectName();
+    data->box3Name = log->thirdGraphBox->objectName();
+    data->box4Name = log->fourthGraphBox->objectName();
+    data->box5Name = log->fifthGraphBox->objectName();
 }
 
 void BaseGUI::moveEvent(QMoveEvent *event)

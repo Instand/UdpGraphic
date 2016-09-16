@@ -102,6 +102,8 @@ private slots:
     void applyYRange();
     void cleanGraphs();
     void takeScreenshot();
+    void setGraphsVisibility(int state);
+    void getBoxNames();
 
 protected:
     virtual void moveEvent(QMoveEvent *event) override;
