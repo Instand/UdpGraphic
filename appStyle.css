@@ -28,7 +28,7 @@
 
 /*show log button setup*/
 .QPushButton#logButton {
-    border-radius: 16px;
+    border-radius: 17px;
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #C0D6EA, stop:1 #0089FF);
 }
 
@@ -47,6 +47,12 @@
 }
 
 .UdpSettings {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #000000, stop: 0.2 #255 stop:0.5 #7B94A9, stop:0.8 #255 stop:1 #000000);
+    border: 2px solid white;
+    border-radius: 20px;
+}
+
+.Log {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #000000, stop: 0.2 #255 stop:0.5 #7B94A9, stop:0.8 #255 stop:1 #000000);
     border: 2px solid white;
     border-radius: 20px;
@@ -89,10 +95,12 @@
     color: white;
 }
 
-
-.QCheckBox {
-    border: 1px solid #3BB7E1;
-    border-radius: 3px;
+.QTextBrowser {
+    border: 2px solid #3BB7E1;
+    border-radius: 7px;
+    selection-background-color: black;
+    background: #4E97B0;
+    color: white;
 }
 
 .QComboBox {
