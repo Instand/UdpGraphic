@@ -17,12 +17,13 @@ struct BaseGUI::Data {
     float endX;
     float startY;
     float endY;
-    float key = 8.0f;
+    float key = 80.0f;
     int graphCount;
     int approximateCount;
     int penWidth;
     uint platformDelay = 5;
     uint tabletDelay = 10;
+    uint screenNumber = 1;
 
     //color vector
     std::vector<Qt::GlobalColor> colors;
@@ -133,6 +134,8 @@ BaseGUI::BaseGUI(QWidget *parent) :
     QObject::connect(&senderThread, SIGNAL(allDataReceived(uint)), SLOT(receiveData(uint)));
     QObject::connect(ui->xSetButton, SIGNAL(clicked(bool)), SLOT(applyXRange()));
     QObject::connect(ui->ySetButton, SIGNAL(clicked(bool)), SLOT(applyYRange()));
+    QObject::connect(ui->clearGraphButton, SIGNAL(clicked(bool)), SLOT(cleanGraphs()));
+    QObject::connect(ui->screenButton, SIGNAL(clicked(bool)), SLOT(takeScreenshot()));
 }
 
 BaseGUI::~BaseGUI()
@@ -472,6 +475,9 @@ void BaseGUI::pause()
     senderThread.requestInterruption();
     senderThread.wait();
     senderThread.dropFlags();
+
+    //remove graphs data
+    cleanGraphs();
 }
 
 void BaseGUI::updateOptions()
@@ -573,6 +579,30 @@ void BaseGUI::applyYRange()
     data->startY = ui->fromYEdit->text().toFloat();
     data->endY = ui->toYEdit->text().toFloat();
     ui->painter->yAxis->setRange(data->startY, data->endY);
+}
+
+void BaseGUI::cleanGraphs()
+{
+    for (int i = 0; i < data->graphCount; ++i)
+        ui->painter->graph(i)->clearData();
+
+    data->graphsSize.clear();
+    data->graphsSize.resize(data->graphCount);
+}
+
+void BaseGUI::takeScreenshot()
+{
+    uint number = data->screenNumber;
+
+    forever {
+
+        if (!QFile::exists(QApplication::applicationDirPath() + "/screenshots/screenshot" + QString::number(number) + QString(".bmp")))
+            break;
+
+        ++number;
+    }
+
+    ui->painter->saveBmp(QApplication::applicationDirPath() + "/screenshots/screenshot" + QString::number(number) + QString(".bmp"));
 }
 
 void BaseGUI::moveEvent(QMoveEvent *event)

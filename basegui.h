@@ -100,6 +100,8 @@ private slots:
     void showLegend(int state);
     void applyXRange();
     void applyYRange();
+    void cleanGraphs();
+    void takeScreenshot();
 
 protected:
     virtual void moveEvent(QMoveEvent *event) override;
