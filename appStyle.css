@@ -119,5 +119,32 @@
 }
 
 
+.QPushButton#xSetButton {
+    border-radius: 15px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #C0D6EA, stop:1 #0089FF);
+}
+
+.QPushButton#xSetButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #D288FF, stop:1 #000000);
+}
+
+.QPushButton#xSetButton:pressed {
+    border: 3px solid #FFCA06;
+}
+
+.QPushButton#ySetButton {
+    border-radius: 15px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #C0D6EA, stop:1 #0089FF);
+}
+
+.QPushButton#ySetButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #D288FF, stop:1 #000000);
+}
+
+.QPushButton#ySetButton:pressed {
+    border: 3px solid #FFCA06;
+}
+
+
 
 
