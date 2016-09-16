@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QUdpSocket>
 #include "udpsettings.h"
+#include "log.h"
+#include "senderthread.h"
 
 namespace Ui {
     class BaseGUI;
@@ -21,6 +23,12 @@ private:
 
     //store udp gui
     UdpSettings* udpSettings;
+
+    //visualize a log
+    Log* log;
+
+    //main thread
+    SenderThread senderThread;
 
     struct Data;
     Data* data;
@@ -61,10 +69,23 @@ private:
     //get name list
     void setupNameList();
 
+    //setup log list
+    void setupLogButtonList();
+
+    //calculate control summ for platform query
+    QByteArray& calcControlSum(QByteArray& array);
+
 public slots:
     void closeApplication();
     void addData(float x, float y, uint graphNum);
     void graphsNull();
+    void setLogPos();
+
+    //send a message to receive all data
+    void sendMessageToReceiveData();
+
+    void receiveTimeout(uint);
+    void receiveData(uint t);
 
 private slots:
     void readyReadDataPendingDatagram();
@@ -77,6 +98,8 @@ private slots:
     void showLog();
     void updateUdpData();
     void showLegend(int state);
+    void applyXRange();
+    void applyYRange();
 
 protected:
     virtual void moveEvent(QMoveEvent *event) override;

@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
     qApp->setStyleSheet(file.readAll());
 
     w.show();
+    w.setLogPos();
 
     return a.exec();
 }

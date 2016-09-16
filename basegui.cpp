@@ -21,6 +21,8 @@ struct BaseGUI::Data {
     int graphCount;
     int approximateCount;
     int penWidth;
+    uint platformDelay = 5;
+    uint tabletDelay = 10;
 
     //color vector
     std::vector<Qt::GlobalColor> colors;
@@ -31,6 +33,8 @@ struct BaseGUI::Data {
     //size values
     uint widgetWidth = 1227;
     uint widgetHeight = 870;
+    const unsigned int headingSens = 0x6F;
+    const unsigned int pitchSens = 0xAF;
 
     //show widget flag
     bool isIpPortShowing = false;
@@ -40,21 +44,28 @@ struct BaseGUI::Data {
     QStringList namesList;
 
     //udp ref
-    QString ip;
-    uint port;
+    QString ip1;
+    uint port1;
+    QString ip2;
+    uint port2;
+    QString ip3;
+    uint port3;
+
+    uint receivedDataCount = 6;
+
+    //received data
+    QVector<float> receivedData = QVector<float>(receivedDataCount);
 };
 
 BaseGUI::BaseGUI(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::BaseGUI),
     udpSettings(new UdpSettings()),
-    data(new Data)
+    log(new Log()),
+    data(new Data())
 {
     ui->setupUi(this);
     data->socket = new QUdpSocket(this);
-
-    //fix size
-    setFixedSize(data->widgetWidth, data->widgetHeight);
 
     //collect current ranges
     data->startX = ui->fromXEdit->text().toFloat();
@@ -104,6 +115,11 @@ BaseGUI::BaseGUI(QWidget *parent) :
     //setup legend
     setupLegend();
 
+    //log graphs control -> buttons names
+    setupLogButtonList();
+
+    ui->painter->legend->setVisible(true);
+
     //connectings
     QObject::connect(ui->exitButton, &QPushButton::clicked, this, &BaseGUI::closeApplication);
     QObject::connect(data->socket, &QUdpSocket::readyRead, this, &BaseGUI::readyReadDataPendingDatagram);
@@ -113,10 +129,10 @@ BaseGUI::BaseGUI(QWidget *parent) :
     QObject::connect(ui->showButton, &QPushButton::clicked, this, &BaseGUI::showUdpSettings);
     QObject::connect(ui->logButton, &QPushButton::clicked, this, &BaseGUI::showLog);
     QObject::connect(ui->legendChekBox, SIGNAL(stateChanged(int)), SLOT(showLegend(int)));
-
-    //axis connections
-    QObject::connect(ui->painter->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->painter->xAxis2, SLOT(setRange(QCPRange)));
-    QObject::connect(ui->painter->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->painter->yAxis2, SLOT(setRange(QCPRange)));
+    QObject::connect(&senderThread, SIGNAL(timeout(uint)), SLOT(receiveTimeout(uint)));
+    QObject::connect(&senderThread, SIGNAL(allDataReceived(uint)), SLOT(receiveData(uint)));
+    QObject::connect(ui->xSetButton, SIGNAL(clicked(bool)), SLOT(applyXRange()));
+    QObject::connect(ui->ySetButton, SIGNAL(clicked(bool)), SLOT(applyYRange()));
 }
 
 BaseGUI::~BaseGUI()
@@ -128,28 +144,59 @@ BaseGUI::~BaseGUI()
 
 void BaseGUI::processReceiveData(QByteArray &array, QHostAddress &address, quint16 port) noexcept
 {
-    //process data
-    if (data->isReceiving) {
+    //new concept
+    QString addr = address.toString().mid(7);
 
-        //check sender
-        if (address.toString() == data->ip && port == data->port) {
+    Q_UNUSED(port)
 
-            //do something
-            int index = 0, step = 4, timePos = 20, timeStep = 4;
+    if (addr == data->ip1) {
 
-            float time = array.mid(timePos, timeStep).toFloat();
+        bool isOk = false;
+        QString hexStr = static_cast<QString>(array.toHex().toUpper());
+        hexStr.remove(hexStr.length()-2, 2);
+        hexStr.remove(0, 8);
+        uint hexAngle = hexStr.toUInt(&isOk, 16);
 
-            //graphs count cycle
-            for (int i = 0; i < data->graphCount; ++i) {
+        data->receivedData[0] = static_cast<float>(hexAngle)/static_cast<float>(data->pitchSens);
+        senderThread.setData1Flag(true);
+        log->addLog("Platform1 data received");
 
-                //draw on graphs
-                addData(time, array.mid(index, step).toFloat(), i);
+    }
 
-                //update index
-                index += step;
+    if (addr == data->ip2) {
 
-            }
+        bool isOk = false;
+        QString hexStr = static_cast<QString>(array.toHex().toUpper());
+        hexStr.remove(hexStr.length()-2, 2);
+        hexStr.remove(0, 8);
+        uint hexAngle = hexStr.toUInt(&isOk, 16);
+
+        data->receivedData[1] = static_cast<float>(hexAngle)/static_cast<float>(data->pitchSens);
+        senderThread.setData2Flag(true);
+        log->addLog("Platform2 data received");
+
+    }
+
+    if (addr == data->ip3) {
+
+        int index = 0, step = 4;
+        QVector<float> someData(3);
+
+        for (int i = 0; i < 3; ++i) {
+
+            float value = *(reinterpret_cast<float*>(array.mid(index, step).data()));
+            someData[i] = value;
+            index += step;
+
         }
+
+        //copy to received data
+        for (int i = 0, j = 2; i < 3; ++i, ++j)
+            data->receivedData[j] = someData[i];
+
+        senderThread.setData3Flag(true);
+        log->addLog("Tablet data received");
+
     }
 }
 
@@ -191,8 +238,8 @@ void BaseGUI::createGraphs()
 
 void BaseGUI::createAxis()
 {
-    ui->painter->xAxis->setLabel("Delta t");
-    ui->painter->yAxis->setLabel("Degree");
+    ui->painter->xAxis->setLabel("Время, с");
+    ui->painter->yAxis->setLabel("Углы/Векторы, гр/пикс");
     ui->painter->xAxis->setRange(data->startX, data->endX);
     ui->painter->yAxis->setRange(data->startY, data->endY);
 
@@ -264,6 +311,30 @@ void BaseGUI::setupNameList()
                     << "Graph 7" << "Graph 8" << "Graph 9" << "Graph 10";
 }
 
+void BaseGUI::setupLogButtonList()
+{
+    auto list = log->getButtonList();
+
+    //go to all buttons
+    for (int i = 0; i < list.size(); ++i)
+        list[i]->setText(data->namesList[i]);
+
+}
+
+QByteArray &BaseGUI::calcControlSum(QByteArray &array)
+{
+    unsigned int sum = 0;
+    for (int i = 0; i < array.size(); ++i) {
+        unsigned char temp = static_cast<unsigned char>(array[i]);
+        sum = sum + static_cast<unsigned int>(temp);
+    }
+    ++sum;
+
+    sum &= 0xFF;
+
+    array.append(static_cast<char>(sum));
+    return array;
+}
 
 void BaseGUI::closeApplication()
 {
@@ -274,8 +345,8 @@ void BaseGUI::addData(float x, float y, uint graphNum)
 {
     //update graph data
     ui->painter->graph(graphNum)->addData(x, y);
-    ui->painter->xAxis->setRange(x + data->startX, data->endX, Qt::AlignRight);
-    ui->painter->yAxis->setRange(data->startY, data->endY);
+   // ui->painter->xAxis->setRange(data->startX, data->endX);
+    //ui->painter->yAxis->setRange(data->startY, data->endY);
 
     //remove data before
     removeCheck(x - data->key, graphNum);
@@ -299,6 +370,64 @@ void BaseGUI::graphsNull()
     createGraphs();
 }
 
+void BaseGUI::setLogPos()
+{
+    log->move(x() - 295, y());
+}
+
+void BaseGUI::sendMessageToReceiveData()
+{
+    //platform 1 angle query
+    uchar cmd[6] = {0xFF, 0x01, 0x00, 0x53, 0x00, 0x00};
+
+    QByteArray command;
+    command.append(reinterpret_cast<char*>(cmd), 6);
+    data->socket->writeDatagram(calcControlSum(command), QHostAddress(data->ip1), data->port1);
+
+    //platform 2 angle query
+    QTimer::singleShot(data->platformDelay, [&]{
+
+        uchar cmd1[6] = {0xFF, 0x01, 0x00, 0x53, 0x00, 0x00};
+
+        QByteArray comm;
+        comm.append(reinterpret_cast<char*>(cmd1), 6);
+        data->socket->writeDatagram(calcControlSum(comm), QHostAddress(data->ip2), data->port2);
+
+    });
+
+    //tablet 3 data query
+    QTimer::singleShot(data->tabletDelay, [&]{
+
+        uchar comm1[6] = {0xC0, 0xFF, 0xFF, 0x01, 0x00, 0x00};
+
+        QByteArray com1;
+        com1.append(reinterpret_cast<char*>(comm1), 6);
+        data->socket->writeDatagram(calcControlSum(com1), QHostAddress(data->ip3), data->port3);
+        log->addLog("Data sended");
+
+    });
+}
+
+void BaseGUI::receiveTimeout(uint)
+{
+    pause();
+
+    //mb we will need something more
+    //...
+}
+
+void BaseGUI::receiveData(uint t)
+{
+    data->receivedData[5] = static_cast<float>(t)/1000.0f;
+    log->addLog("All Data received");
+    setResumeStatus();
+
+    for (int i = 0; i < data->graphCount; ++i)
+        addData(data->receivedData[5], data->receivedData[i], i);
+
+    sendMessageToReceiveData();
+}
+
 void BaseGUI::readyReadDataPendingDatagram()
 {
     //read all data
@@ -318,26 +447,31 @@ void BaseGUI::readyReadDataPendingDatagram()
 
 void BaseGUI::setPauseStatus()
 {
-    ui->statusLabel->setText("<span style=\" font-size:14px; color:red;\">Pause</span>");
+    ui->statusLabel->setText("<span style=\" font-size:14px; color:red;\">No connection</span>");
 }
 
 void BaseGUI::setResumeStatus()
 {
-    ui->statusLabel->setText("<span style=\" font-size:14px; color:green;\">Receive</span>");
+    ui->statusLabel->setText("<span style=\" font-size:14px; color:green;\">Connection</span>");
 }
 
 void BaseGUI::resume()
 {
-    setResumeStatus();
+    log->addLog("State: Started");
 
-    data->isReceiving = true;
+    senderThread.start();
+    sendMessageToReceiveData();
 }
 
 void BaseGUI::pause()
 {
     setPauseStatus();
+    log->addLog("State: No connection");
 
-    data->isReceiving = false;
+    //do something if thread off all needed to shut down
+    senderThread.requestInterruption();
+    senderThread.wait();
+    senderThread.dropFlags();
 }
 
 void BaseGUI::updateOptions()
@@ -380,9 +514,8 @@ void BaseGUI::updateOptions()
     data->startY = ui->fromYEdit->text().toFloat();
     data->endY = ui->toYEdit->text().toFloat();
 
-    //clear graphs
-    if (ui->clearGraphCheck->isChecked())
-        graphsNull();
+    ui->painter->xAxis->setRange(data->startX, data->endX);
+    ui->painter->yAxis->setRange(data->startY, data->endY);
 
     data->approximateCount = ui->approximateEdit->text().toInt();
 
@@ -407,13 +540,19 @@ void BaseGUI::showLog()
 {
     data->isLogShowing = !data->isLogShowing;
 
+    data->isLogShowing ? log->show() : log->hide();
+
     setupLogArrows();
 }
 
 void BaseGUI::updateUdpData()
 {
-    data->ip = udpSettings->ip();
-    data->port = udpSettings->port();
+    data->ip1 = udpSettings->ip1();
+    data->port1 = udpSettings->port1();
+    data->ip2 = udpSettings->ip2();
+    data->port2 = udpSettings->port2();
+    data->ip3 = udpSettings->ip3();
+    data->port3 = udpSettings->port3();
 }
 
 void BaseGUI::showLegend(int state)
@@ -422,9 +561,24 @@ void BaseGUI::showLegend(int state)
     ui->painter->replot();
 }
 
+void BaseGUI::applyXRange()
+{
+    data->startX = ui->fromXEdit->text().toFloat();
+    data->endX = ui->toXEdit->text().toFloat();
+    ui->painter->xAxis->setRange(data->startX, data->endX);
+}
+
+void BaseGUI::applyYRange()
+{
+    data->startY = ui->fromYEdit->text().toFloat();
+    data->endY = ui->toYEdit->text().toFloat();
+    ui->painter->yAxis->setRange(data->startY, data->endY);
+}
+
 void BaseGUI::moveEvent(QMoveEvent *event)
 {
     udpSettings->setGeometry(x() + width()/2 - 16, y() + height() + 34, udpSettings->width(), udpSettings->height()/4);
+    log->move(x() - 295, y());
     QWidget::moveEvent(event);
 }
 
