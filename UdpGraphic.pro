@@ -16,12 +16,14 @@ SOURCES += main.cpp\
         basegui.cpp \
     qcustomplot.cpp \
     udpsettings.cpp \
-    log.cpp
+    log.cpp \
+    senderthread.cpp
 
 HEADERS  += basegui.h \
     qcustomplot.h \
     udpsettings.h \
-    log.h
+    log.h \
+    senderthread.h
 
 FORMS    += basegui.ui
 
