@@ -75,7 +75,7 @@ QVector<QAbstractButton *> Log::getButtonList() const
 
 void Log::changeBoxNames()
 {
-    firstGraphBox->setObjectName("GraphBox1");
+    firstGraphBox->setObjectName("Graph1Box");
     secondGraphBox->setObjectName("Graph2Box");
     thirdGraphBox->setObjectName("Graph3Box");
     fourthGraphBox->setObjectName("Graph4Box");

@@ -627,19 +627,19 @@ void BaseGUI::setGraphsVisibility(int state)
 
     if (name == data->box1Name)
         ui->painter->graph(0)->setVisible(_state);
-    else if (name == data->box2Name)
+    if (name == data->box2Name)
         ui->painter->graph(1)->setVisible(_state);
-    else if (name == data->box3Name)
+    if (name == data->box3Name)
         ui->painter->graph(2)->setVisible(_state);
-    else if (name == data->box4Name)
+    if (name == data->box4Name)
         ui->painter->graph(3)->setVisible(_state);
-    else if (name == data->box5Name)
+    if (name == data->box5Name)
         ui->painter->graph(4)->setVisible(_state);
 }
 
 void BaseGUI::getBoxNames()
 {
-    data->box1Name = log->fifthGraphBox->objectName();
+    data->box1Name = log->firstGraphBox->objectName();
     data->box2Name = log->secondGraphBox->objectName();
     data->box3Name = log->thirdGraphBox->objectName();
     data->box4Name = log->fourthGraphBox->objectName();
