@@ -56,7 +56,7 @@ Log::Log(QWidget *pwgt):
     setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
 
     setLayout(mainLayout);
-
+    changeBoxNames();
 
     QObject::connect(clearButton, SIGNAL(clicked(bool)), logBrowser, SLOT(clear()));
 }
@@ -71,6 +71,15 @@ QVector<QAbstractButton *> Log::getButtonList() const
     list.push_back(fifthGraphBox);
 
     return list;
+}
+
+void Log::changeBoxNames()
+{
+    firstGraphBox->setObjectName("GraphBox1");
+    secondGraphBox->setObjectName("Graph2Box");
+    thirdGraphBox->setObjectName("Graph3Box");
+    fourthGraphBox->setObjectName("Graph4Box");
+    fifthGraphBox->setObjectName("Graph5Box");
 }
 
 void Log::addLog(const QString &log)

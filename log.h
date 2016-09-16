@@ -31,6 +31,8 @@ private:
     QTextBrowser* logBrowser;
     QPushButton* clearButton;
 
+    void changeBoxNames();
+
 public:
     // five check buttons
     QCheckBox* firstGraphBox;
