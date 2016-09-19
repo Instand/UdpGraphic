@@ -323,7 +323,7 @@ void BaseGUI::setupLegend()
 
 void BaseGUI::setupNameList()
 {
-    data->namesList << "BackLink Platform" << "External Liverage Platrform" << "CompaNav" << "Hover Point" << "Control signal" << "Graph 6"
+    data->namesList << "Платформа ОС" << "Платформа ВВ" << "КомпаНав" << "Точка висения" << "Сигнал управления" << "Graph 6"
                     << "Graph 7" << "Graph 8" << "Graph 9" << "Graph 10";
 }
 
